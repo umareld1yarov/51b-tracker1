@@ -1,0 +1,196 @@
+<!--
+  index.html — Точка входа приложения
+  Отвечает за: структуру всех экранов, подключение стилей и скриптов
+  Когда менять: при добавлении новых экранов или глобальных мета-тегов
+  Не путать с: app.js (логика) и style.css (визуал)
+-->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="51B" />
+  <title>Оцифровка 51B</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════
+       НАВИГАЦИЯ
+  ═══════════════════════════════════════════ -->
+  <nav class="nav">
+    <button class="nav-btn active" data-screen="main">
+      <span class="nav-icon">◉</span>
+      <span>Фокус</span>
+    </button>
+    <button class="nav-btn" data-screen="log">
+      <span class="nav-icon">≡</span>
+      <span>Лента</span>
+    </button>
+    <button class="nav-btn" data-screen="notes">
+      <span class="nav-icon">◈</span>
+      <span>Манифест</span>
+    </button>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════
+       ЭКРАН 1: ГЛАВНЫЙ — ТЕКУЩАЯ АКТИВНОСТЬ
+  ═══════════════════════════════════════════ -->
+  <main class="screen active" id="screen-main">
+
+    <div class="main-top">
+      <div class="date-label" id="date-label"></div>
+      <div class="brand">51B</div>
+    </div>
+
+    <!-- Текущая активность -->
+    <div class="current-block">
+      <div class="current-tag" id="current-tag">—</div>
+      <div class="current-name" id="current-name">Нажми «Начать день»</div>
+      <div class="timer-display" id="timer-display">00:00:00</div>
+    </div>
+
+    <!-- Шкала Бараката -->
+    <div class="barakat-block">
+      <div class="barakat-label">
+        <span>Шкала Бараката</span>
+        <span class="barakat-ratio" id="barakat-ratio">—</span>
+      </div>
+      <div class="barakat-bar">
+        <div class="barakat-fill" id="barakat-fill"></div>
+        <div class="barakat-enemy" id="barakat-enemy"></div>
+      </div>
+      <div class="barakat-sub">
+        <span id="barakat-focus-time">Фокус: 0м</span>
+        <span id="barakat-waste-time">Потери: 0м</span>
+      </div>
+    </div>
+
+    <!-- Итог дня -->
+    <div class="day-stats" id="day-stats">
+      <div class="stat-pill" id="stat-focus">
+        <span class="stat-val">0м</span>
+        <span class="stat-lbl">Фокус</span>
+      </div>
+      <div class="stat-pill" id="stat-waste">
+        <span class="stat-val">0м</span>
+        <span class="stat-lbl">Потери</span>
+      </div>
+      <div class="stat-pill" id="stat-base">
+        <span class="stat-val">0м</span>
+        <span class="stat-lbl">Базовые</span>
+      </div>
+    </div>
+
+    <!-- Кнопка смены активности -->
+    <button class="btn-switch" id="btn-switch">Сменить активность</button>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════
+       ЭКРАН 2: ЛЕНТА ДНЯ + ЭКСПОРТ
+  ═══════════════════════════════════════════ -->
+  <main class="screen" id="screen-log">
+
+    <div class="screen-header">
+      <div class="screen-title">Лента</div>
+    </div>
+
+    <!-- Экспорт -->
+    <div class="export-block">
+      <div class="export-label">Экспорт лога для ИИ</div>
+      <div class="export-btns">
+        <button class="btn-export" data-range="today">Сегодня</button>
+        <button class="btn-export" data-range="week">Неделя</button>
+        <button class="btn-export" data-range="all">Всё время</button>
+      </div>
+      <div class="export-feedback" id="export-feedback"></div>
+    </div>
+
+    <!-- Фильтр по дате -->
+    <div class="log-filter">
+      <button class="filter-btn active" data-filter="today">Сегодня</button>
+      <button class="filter-btn" data-filter="week">7 дней</button>
+      <button class="filter-btn" data-filter="all">Всё</button>
+    </div>
+
+    <!-- Лента -->
+    <div class="log-list" id="log-list">
+      <div class="log-empty">Записей пока нет</div>
+    </div>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════
+       ЭКРАН 3: МАНИФЕСТ / ЗАМЕТКИ
+  ═══════════════════════════════════════════ -->
+  <main class="screen" id="screen-notes">
+
+    <div class="screen-header">
+      <div class="screen-title">Манифест</div>
+      <button class="btn-save-notes" id="btn-save-notes">Сохранить</button>
+    </div>
+
+    <textarea
+      class="notes-area"
+      id="notes-area"
+      placeholder="Твой манифест, цели, правила дисциплины...&#10;&#10;Перечитывай каждое утро."
+    ></textarea>
+
+    <div class="notes-saved" id="notes-saved"></div>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════
+       МОДАЛЬНОЕ ОКНО — СМЕНА АКТИВНОСТИ
+  ═══════════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <div class="modal-title">Чем занимаешься?</div>
+
+      <input
+        class="modal-input"
+        id="modal-input"
+        type="text"
+        placeholder="Например: Пишу код..."
+        maxlength="80"
+        autocomplete="off"
+      />
+
+      <div class="tag-grid">
+        <button class="tag-btn selected" data-tag="focus">
+          <span class="tag-dot tag-dot--focus"></span>
+          Чистый фокус
+          <span class="tag-hint">Работа · учёба · созидание</span>
+        </button>
+        <button class="tag-btn" data-tag="waste">
+          <span class="tag-dot tag-dot--waste"></span>
+          Пожиратель
+          <span class="tag-hint">Соцсети · перекур · лень</span>
+        </button>
+        <button class="tag-btn" data-tag="base">
+          <span class="tag-dot tag-dot--base"></span>
+          Базовые нужды
+          <span class="tag-hint">Намаз · сон · еда · быт</span>
+        </button>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" id="btn-cancel">Отмена</button>
+        <button class="btn-confirm" id="btn-confirm">Запустить →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Скрипты — порядок важен -->
+  <script src="js/storage.js"></script>
+  <script src="js/timer.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
