@@ -30,14 +30,14 @@ const Render = (() => {
     notesSaved:     $('notes-saved'),
   };
 
-  // ── Дата в шапке ─────────────────────────────
+  // ── Дата в шапке главного экрана ──────────────
 
   function updateDateLabel() {
     const d = new Date();
     const days = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
     const months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
     els.dateLabel.textContent =
-      `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]}`;
+      `${days[d.getDay() ]}, ${d.getDate()} ${months[d.getMonth()]}`;
   }
 
   // ── Текущая активность ───────────────────────
@@ -100,7 +100,7 @@ const Render = (() => {
     els.statBase.querySelector('.stat-val').textContent  = Timer.formatShort(stats.base);
   }
 
-  // ── Лента записей ────────────────────────────
+  // ── Лента записей (Посуточная навигация) ──────
 
   const TAG_LABELS = {
     focus: 'Фокус',
@@ -115,63 +115,84 @@ const Render = (() => {
          + String(d.getMinutes()).padStart(2, '0');
   }
 
-  /** 'YYYY-MM-DD' → 'ДД.ММ.ГГГГ' */
-  function _formatDate(dateStr) {
-    const [y, m, d] = dateStr.split('-');
-    return `${d}.${m}.${y}`;
-  }
-
   /**
-   * Отрисовать ленту.
-   * @param {string} filter — 'today' | 'week' | 'all'
+   * Отрисовать ленту за выбранные сутки.
+   * @param {Date} targetDate — Объект выбранной даты из календаря app.js
    */
-  function renderLog(filter) {
-    let entries;
-    if (filter === 'today') {
-      entries = Storage.getEntriesByDate(Storage.todayKey());
-    } else if (filter === 'week') {
-      entries = Storage.getEntriesLastDays(7);
-    } else {
-      entries = Storage.getEntries();
+  function renderLog(targetDate) {
+    // 1. Генерируем ISO-ключ (YYYY-MM-DD) для запроса к Storage
+    const y = targetDate.getFullYear();
+    const m = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const d = String(targetDate.getDate()).padStart(2, '0');
+    const dateKey = `${y}-${m}-${d}`;
+
+    // 2. Обновляем текстовую метку даты внутри навигации календаря
+    const daysShort = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+    const monthsShort = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+    const calLabel = $('calendar-date-label');
+    if (calLabel) {
+      calLabel.textContent = `${daysShort[targetDate.getDay()]}, ${targetDate.getDate()} ${monthsShort[targetDate.getMonth()]}`;
     }
 
-    entries = [...entries].sort((a, b) => b.startedAt - a.startedAt); // новые сверху
+    // 3. Загружаем данные за этот день
+    let entries = Storage.getEntriesByDate(dateKey) || [];
+    
+    // Сортируем ХРОНОЛОГИЧЕСКИ (от ранних утренних к вечерним)
+    entries = [...entries].sort((a, b) => a.startedAt - b.startedAt);
 
+    // 4. Подсчитываем итоги дня для футера и индикатора
+    const totals = { focus: 0, waste: 0, base: 0 };
+    entries.forEach(e => {
+      if (totals[e.tag] !== undefined) totals[e.tag] += e.duration;
+    });
+
+    // Обновляем циферки в нижнем футере ленты
+    const fSum = $('sum-focus');
+    const wSum = $('sum-waste');
+    const bSum = $('sum-base');
+    if (fSum && wSum && bSum) {
+      fSum.textContent = Timer.formatShort(totals.focus);
+      wSum.textContent = Timer.formatShort(totals.waste);
+      bSum.textContent = Timer.formatShort(totals.base);
+    }
+
+    // 5. Управление цветной точкой Бараката дня (🟢 / 🔴 / 🔵)
+    const dotEl = $('calendar-dot');
+    if (dotEl) {
+      if (entries.length === 0) {
+        dotEl.style.backgroundColor = 'var(--c-muted)'; // Серый — пусто
+      } else if (totals.focus >= totals.waste && totals.focus >= totals.base) {
+        dotEl.style.backgroundColor = 'var(--c-focus)'; // Зеленый — продуктивный день
+      } else if (totals.waste > totals.focus && totals.waste >= totals.base) {
+        dotEl.style.backgroundColor = 'var(--c-waste)'; // Красный — доминируют потери
+      } else {
+        dotEl.style.backgroundColor = 'var(--c-base)';  // Синий — базовые дела
+      }
+    }
+
+    // 6. Вывод заглушки, если день пустой
     if (entries.length === 0) {
-      els.logList.innerHTML = '<div class="log-empty">Записей пока нет</div>';
+      els.logList.innerHTML = '<div class="log-empty">Записей за этот день нет</div>';
       return;
     }
 
-    // Группируем по дате
-    const byDate = {};
-    entries.forEach(e => {
-      if (!byDate[e.date]) byDate[e.date] = [];
-      byDate[e.date].push(e);
-    });
-
-    const dates = Object.keys(byDate).sort().reverse();
-    const today = Storage.todayKey();
+    // 7. Сборка HTML структуры списка
     let html = '';
-
-    dates.forEach(date => {
-      const label = date === today ? 'Сегодня' : _formatDate(date);
-      html += `<div class="log-date-sep">${label}</div>`;
-
-      byDate[date].forEach(e => {
-        html += `
-          <div class="log-item" data-tag="${e.tag}">
-            <div class="log-item-bar"></div>
-            <div class="log-item-body">
-              <div class="log-item-name">${_escape(e.name)}</div>
-              <div class="log-item-time">
-                ${_time(e.startedAt)} – ${_time(e.endedAt)}
-                &nbsp;·&nbsp; ${TAG_LABELS[e.tag] || e.tag}
-              </div>
+    entries.forEach(e => {
+      // Сохраняем startedAt в data-id, чтобы app.js мог открыть модалку при клике
+      html += `
+        <div class="log-item" data-tag="${e.tag}" data-id="${e.startedAt}">
+          <div class="log-item-bar"></div>
+          <div class="log-item-body">
+            <div class="log-item-name">${_escape(e.name)}</div>
+            <div class="log-item-time">
+              ${_time(e.startedAt)} – ${_time(e.endedAt)}
+              &nbsp;·&nbsp; ${TAG_LABELS[e.tag] || e.tag}
             </div>
-            <div class="log-item-dur">${Timer.formatShort(e.duration)}</div>
           </div>
-        `;
-      });
+          <div class="log-item-dur">${Timer.formatShort(e.duration)}</div>
+        </div>
+      `;
     });
 
     els.logList.innerHTML = html;
@@ -222,7 +243,7 @@ const Render = (() => {
 
   function init() {
     updateDateLabel();
-    setInterval(updateDateLabel, 60000); // обновляем дату раз в минуту
+    setInterval(updateDateLabel, 60000);
     updateCurrentActivity();
     updateBarakat();
     updateDayStats();
@@ -240,7 +261,7 @@ const Render = (() => {
     updateCurrentActivity,
     updateBarakat,
     updateDayStats,
-    renderLog,
+    renderLog, // Теперь принимает объект даты типа Date()
     showExportFeedback,
     showNotesSaved,
   };
