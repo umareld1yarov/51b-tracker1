@@ -19,6 +19,9 @@ document.addEventListener('DOMContentLoaded', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   }
 
+  // ── Глобальное состояние текущей даты ─────────
+  let currentSelectedDate = new Date(); // Хранит день, который сейчас открыт в ленте
+
   // ── Инициализация модулей ────────────────────
 
   Render.init();
@@ -28,21 +31,22 @@ document.addEventListener('DOMContentLoaded', () => {
     (elapsed) => {
       Render.updateMain(elapsed);
     },
-    // При смене активности → обновляем текущий блок и лог
+    // При смене активности → обновляем текущий блок и ленту (если мы на её экране)
     () => {
       Render.updateCurrentActivity();
       Render.updateBarakat();
       Render.updateDayStats();
-      if (currentLogFilter) Render.renderLog(currentLogFilter);
+      if (activeScreen === 'log') {
+        Render.renderLog(currentSelectedDate);
+      }
     }
   );
 
-  // ── Навигация ────────────────────────────────
+  // ── Навигация по экранам ──────────────────────
 
-  const navBtns   = document.querySelectorAll('.nav-btn');
-  const screens   = document.querySelectorAll('.screen');
+  const navBtns    = document.querySelectorAll('.nav-btn');
+  const screens    = document.querySelectorAll('.screen');
   let activeScreen = 'main';
-  let currentLogFilter = 'today';
 
   function switchScreen(screenId) {
     activeScreen = screenId;
@@ -53,9 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
       s.classList.toggle('active', s.id === `screen-${screenId}`);
     });
 
-    // При переходе на ленту — перерисовываем
+    // При переходе на ленту — рендерим выбранный день
     if (screenId === 'log') {
-      Render.renderLog(currentLogFilter);
+      Render.renderLog(currentSelectedDate);
     }
 
     // При переходе на манифест — загружаем текст
@@ -68,17 +72,22 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => switchScreen(btn.dataset.screen));
   });
 
-  // ── Фильтр ленты ─────────────────────────────
+  // ── Посуточный календарь (Навигация) ──────────
 
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-btn')
-        .forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentLogFilter = btn.dataset.filter;
-      Render.renderLog(currentLogFilter);
+  const btnPrev = document.getElementById('cal-prev');
+  const btnNext = document.getElementById('cal-next');
+
+  if (btnPrev && btnNext) {
+    btnPrev.addEventListener('click', () => {
+      currentSelectedDate.setDate(currentSelectedDate.getDate() - 1);
+      Render.renderLog(currentSelectedDate);
     });
-  });
+
+    btnNext.addEventListener('click', () => {
+      currentSelectedDate.setDate(currentSelectedDate.getDate() + 1);
+      Render.renderLog(currentSelectedDate);
+    });
+  }
 
   // ── Модальное окно смены активности ──────────
 
@@ -98,7 +107,6 @@ document.addEventListener('DOMContentLoaded', () => {
       b.classList.toggle('selected', b.dataset.tag === 'focus');
     });
     modal.classList.add('open');
-    // Задержка нужна, чтобы клавиатура не мешала анимации
     setTimeout(() => modalInput.focus(), 300);
   }
 
@@ -107,16 +115,13 @@ document.addEventListener('DOMContentLoaded', () => {
     modalInput.blur();
   }
 
-  btnSwitch.addEventListener('click', openModal);
+  if (btnSwitch)  btnSwitch.addEventListener('click', openModal);
+  if (btnCancel)  btnCancel.addEventListener('click', closeModal);
 
-  btnCancel.addEventListener('click', closeModal);
-
-  // Закрытие по клику на оверлей
-  modal.addEventListener('click', (e) => {
+  modal?.addEventListener('click', (e) => {
     if (e.target === modal) closeModal();
   });
 
-  // Выбор тега
   tagBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       selectedTag = btn.dataset.tag;
@@ -125,20 +130,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Подтверждение — Enter или кнопка
-  modalInput.addEventListener('keydown', (e) => {
+  modalInput?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') confirmSwitch();
   });
 
-  btnConfirm.addEventListener('click', confirmSwitch);
+  if (btnConfirm) btnConfirm.addEventListener('click', confirmSwitch);
 
   function confirmSwitch() {
     const name = modalInput.value.trim();
     if (!name) {
       modalInput.style.borderColor = 'var(--c-waste)';
-      setTimeout(() => {
-        modalInput.style.borderColor = '';
-      }, 800);
+      setTimeout(() => { modalInput.style.borderColor = ''; }, 800);
       modalInput.focus();
       return;
     }
@@ -146,15 +148,81 @@ document.addEventListener('DOMContentLoaded', () => {
     Timer.switchActivity(name, selectedTag);
   }
 
-  // ── Экспорт ───────────────────────────────────
+  // ── Нижняя шторка деталей активности ───────────
+
+  const detailModal = document.getElementById('detail-modal-overlay');
+  const detailName  = document.getElementById('detail-name');
+  const detailTime  = document.getElementById('detail-time');
+  const btnDelLog   = document.getElementById('btn-delete-log');
+  const btnCloseDet = document.getElementById('btn-close-detail');
+
+  let activeLogId = null; // Будет хранить startedAt выбранной записи
+
+  // Открытие деталей при клике на элемент ленты (делегирование событий)
+  document.getElementById('log-list')?.addEventListener('click', (e) => {
+    const item = e.target.closest('.log-item');
+    if (!item) return;
+
+    const logId = parseInt(item.dataset.id, 10);
+    const entry = Storage.getEntries().find(x => x.startedAt === logId);
+    
+    if (entry) {
+      activeLogId = logId;
+      detailName.textContent = entry.name;
+      
+      const start = new Date(entry.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const end = new Date(entry.endedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      detailTime.textContent = `${start} – ${end} (${Timer.formatShort(entry.duration)})`;
+      
+      detailModal.classList.add('open');
+    }
+  });
+
+  function closeDetailModal() {
+    detailModal?.classList.remove('open');
+    activeLogId = null;
+  }
+
+  btnCloseDet?.addEventListener('click', closeDetailModal);
+  detailModal?.addEventListener('click', (e) => {
+    if (e.target === detailModal) closeDetailModal();
+  });
+
+  // Удаление записи
+  btnDelLog?.addEventListener('click', () => {
+    if (!activeLogId) return;
+    
+    if (confirm('Удалить эту запись из истории?')) {
+      Storage.deleteEntry(activeLogId);
+      closeDetailModal();
+      Render.renderLog(currentSelectedDate); // Обновляем текущие сутки
+      Render.updateBarakat();               // Пересчитываем глобальные счетчики
+      Render.updateDayStats();
+    }
+  });
+
+  // ── Глобальный Экспорт / Экспорт дня ───────────
 
   document.querySelectorAll('.btn-export').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const range = btn.dataset.range;
+      let range = btn.dataset.range;
+      let toastText = '';
+
+      if (range === 'day') {
+        // Формируем YYYY-MM-DD из просматриваемой даты календаря
+        const y = currentSelectedDate.getFullYear();
+        const m = String(currentSelectedDate.getMonth() + 1).padStart(2, '0');
+        const d = String(currentSelectedDate.getDate()).padStart(2, '0');
+        range = `${y}-${m}-${d}`;
+        toastText = `✓ Отчет за ${d}.${m} скопирован`;
+      } else {
+        const labels = { today: 'Сегодня', week: 'Неделя', all: 'Всё время' };
+        toastText = `✓ ${labels[range] || 'Данные'} скопированы в буфер`;
+      }
+
       const ok = await Export.copyToClipboard(range);
       if (ok) {
-        const labels = { today: 'Сегодня', week: 'Неделя', all: 'Всё время' };
-        Render.showExportFeedback(`✓ ${labels[range]} скопировано в буфер`);
+        Render.showExportFeedback(toastText);
       } else {
         Render.showExportFeedback('✗ Не удалось скопировать');
       }
@@ -163,17 +231,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Манифест / Заметки ────────────────────────
 
-  document.getElementById('btn-save-notes').addEventListener('click', () => {
-    const text = document.getElementById('notes-area').value;
-    Storage.setNotes(text);
-    Render.showNotesSaved();
+  const btnSaveNotes = document.getElementById('btn-save-notes');
+  const notesArea    = document.getElementById('notes-area');
+
+  btnSaveNotes?.addEventListener('click', () => {
+    if (notesArea) {
+      Storage.setNotes(notesArea.value);
+      Render.showNotesSaved();
+    }
   });
 
-  // ── Автосохранение манифеста при уходе ───────
-
-  document.getElementById('notes-area').addEventListener('blur', () => {
-    const text = document.getElementById('notes-area').value;
-    Storage.setNotes(text);
+  notesArea?.addEventListener('blur', () => {
+    Storage.setNotes(notesArea.value);
   });
 
 });
