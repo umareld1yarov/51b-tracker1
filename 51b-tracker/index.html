@@ -112,11 +112,64 @@
     </div>
 
     <!-- Фильтр по дате -->
-    <div class="log-filter">
-      <button class="filter-btn active" data-filter="today">Сегодня</button>
-      <button class="filter-btn" data-filter="week">7 дней</button>
-      <button class="filter-btn" data-filter="all">Всё</button>
+    <!-- Календарная навигация -->
+    <div class="calendar-nav">
+      <button id="btn-prev-day" class="cal-btn">←</button>
+      <div class="calendar-center">
+        <span id="calendar-dot" class="cal-dot"></span>
+        <span id="calendar-date-label">—</span>
+      </div>
+      <button id="btn-next-day" class="cal-btn">→</button>
     </div>
+
+    <!-- Лента -->
+    <div class="log-list" id="log-list">
+      <div class="log-empty">Записей пока нет</div>
+    </div>
+
+    <!-- Итог дня -->
+    <div class="day-summary-footer" id="day-summary-footer">
+      Фокус <span id="sum-focus" class="sum-focus">0м</span> · Потери <span id="sum-waste" class="sum-waste">0м</span> · Базовые <span id="sum-base" class="sum-base">0м</span>
+    </div>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════
+       МОДАЛЬНОЕ ОКНО — ДЕТАЛИ АКТИВНОСТИ
+  ═══════════════════════════════════════════ -->
+  <div class="modal-overlay" id="detail-modal-overlay">
+    <div class="modal">
+      <div class="modal-title">Детали активности</div>
+      
+      <div class="detail-card">
+        <div class="detail-row">
+          <span class="detail-label">Название:</span>
+          <span class="detail-val" id="detail-name">—</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Категория:</span>
+          <span class="detail-val" id="detail-tag">—</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Интервал:</span>
+          <span class="detail-val token" id="detail-time">—</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Длительность:</span>
+          <span class="detail-val token" id="detail-duration">—</span>
+        </div>
+      </div>
+
+      <div class="modal-actions-vertical">
+        <button class="btn-secondary-action" id="btn-copy-day">Скопировать лог дня</button>
+        <div class="modal-actions-row">
+          <button class="btn-action-edit" id="btn-edit-entry">Редактировать</button>
+          <button class="btn-action-delete" id="btn-delete-entry">Удалить</button>
+        </div>
+        <button class="btn-cancel" id="btn-close-detail" style="grid-column: span 2;">Закрыть</button>
+      </div>
+    </div>
+  </div>
 
     <!-- Лента -->
     <div class="log-list" id="log-list">
