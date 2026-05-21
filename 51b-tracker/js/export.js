@@ -92,6 +92,13 @@ const Export = (() => {
     return _buildDayBlock(today, entries);
   }
 
+  /** Лог за конкретный выбранный день */
+  function buildDay(dateStr) {
+    const entries = Storage.getEntriesByDate(dateStr).sort((a, b) => a.startedAt - b.startedAt);
+    if (entries.length === 0) return `— Записей за ${_formatDate(dateStr)} нет —`;
+    return _buildDayBlock(dateStr, entries);
+  }
+
   /** Лог за последние 7 дней */
   function buildWeek() {
     const entries = Storage.getEntriesLastDays(7);
@@ -142,15 +149,24 @@ const Export = (() => {
    */
   async function copyToClipboard(range) {
     let text = '';
-    if (range === 'today') text = buildToday();
-    else if (range === 'week') text = buildWeek();
-    else text = buildAll();
+    
+    // Проверяем, какой именно диапазон или дату запросили
+    if (range === 'today') {
+      text = buildToday();
+    } else if (range === 'week') {
+      text = buildWeek();
+    } else if (range === 'all') {
+      text = buildAll();
+    } else {
+      // Если передана строка даты (например, '2026-05-21'), вызываем сборку за этот день
+      text = buildDay(range); 
+    }
 
     try {
       await navigator.clipboard.writeText(text);
       return true;
     } catch {
-      // Fallback для старых браузеров
+      // Fallback для старых браузеров / WebView
       const el = document.createElement('textarea');
       el.value = text;
       el.style.position = 'fixed';
@@ -167,6 +183,7 @@ const Export = (() => {
     buildToday,
     buildWeek,
     buildAll,
+    buildDay, // ← Добавили
     copyToClipboard,
   };
 
