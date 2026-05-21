@@ -703,3 +703,194 @@ html, body {
 ::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 2px; }
+
+/* ── СТИЛИ ДЛЯ ОБНОВЛЕННОЙ ЛЕНТЫ ────────────────── */
+
+.calendar-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  padding: 6px 12px;
+  margin-bottom: 4px;
+}
+
+.cal-btn {
+  background: none;
+  border: none;
+  color: var(--c-text);
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 16px;
+  transition: color 0.15s;
+}
+
+.cal-btn:active {
+  color: var(--c-accent);
+}
+
+.calendar-center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cal-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c-muted);
+  transition: background-color 0.3s ease;
+}
+
+#calendar-date-label {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.day-summary-footer {
+  margin-top: auto;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  padding: 12px;
+  text-align: center;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+}
+
+.day-summary-footer span {
+  font-family: var(--font-mono);
+  margin: 0 2px;
+}
+
+.sum-focus { color: var(--c-focus); }
+.sum-waste { color: var(--c-waste); }
+.sum-base { color: var(--c-base); }
+
+/* Интерактивность для элементов списка */
+.log-item {
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.log-item:active {
+  background: var(--c-surface2);
+  border-color: var(--c-muted);
+}
+
+/* Детальная карточка */
+.detail-card {
+  background: var(--c-surface2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.02);
+  padding-bottom: 8px;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.detail-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--c-muted);
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.detail-val {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--c-text);
+  text-align: right;
+  word-break: break-word;
+}
+
+.detail-val.token {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+/* Кнопки в модалке деталей */
+.modal-actions-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-actions-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.btn-secondary-action {
+  padding: 12px;
+  background: var(--c-surface2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  color: var(--c-accent);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-secondary-action:active {
+  border-color: var(--c-accent);
+}
+
+.btn-action-edit {
+  padding: 12px;
+  background: none;
+  border: 1px solid rgba(77, 159, 255, 0.4);
+  color: var(--c-base);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+.btn-action-delete {
+  padding: 12px;
+  background: none;
+  border: 1px solid rgba(255, 77, 77, 0.4);
+  color: var(--c-waste);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
